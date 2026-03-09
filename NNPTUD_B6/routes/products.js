@@ -1,96 +1,56 @@
+// routes/products.js
 var express = require('express');
 var router = express.Router();
-let productModel = require('../schemas/products')
-let { ConvertTitleToSlug } = require('../utils/titleHandler')
-let { getMaxID } = require('../utils/IdHandler')
+let productController = require('../controllers/products'); // ← import controller
+let { checkLogin, checkRole } = require('../utils/authHandler');
 
-//getall
 router.get('/', async function (req, res, next) {
-  // let queries = req.query;
-  // let titleQ = queries.title ? queries.title : '';
-  // let minPrice = queries.minPrice ? queries.minPrice : 0;
-  // let maxPrice = queries.maxPrice ? queries.maxPrice : 1E6;
-  // let page = queries.page ? queries.page : 1;
-  // let limit = queries.limit ? queries.limit : 10;
-  // console.log(queries);
-  // let result = data.filter(
-  //   function (e) {
-  //     return (!e.isDeleted) && e.title.includes(titleQ) &&
-  //       e.price >= minPrice && e.price <= maxPrice
-  //   }
-  // );
-  // result = result.splice(limit * (page - 1), limit)
-  // res.send(result);
-  let products = await productModel.find({});
-  res.send(products)
-});
-//get by ID
-router.get('/:id', async function (req, res, next) {
-  try {
-    let result = await productModel.find({ _id: req.params.id });
-    if (result.length > 0) {
-      res.send(result)
-    } else {
-      res.status(404).send({
-        message: "id not found"
-      })
+    try {
+        let products = await productController.getAllProducts();
+        res.send(products);
+    } catch (error) {
+        res.status(500).send({ message: error.message });
     }
-  } catch (error) {
-    res.status(404).send({
-      message: "id not found"
-    })
-  }
 });
 
+router.get('/:id', async function (req, res, next) {
+    try {
+        let product = await productController.getProductById(req.params.id);
+        if (!product) return res.status(404).send({ message: "id not found" });
+        res.send(product);
+    } catch (error) {
+        res.status(404).send({ message: "id not found" });
+    }
+});
 
-router.post('/', async function (req, res, next) {
-  let newItem = new productModel({
-    title: req.body.title,
-    slug: ConvertTitleToSlug(req.body.title),
-    price: req.body.price,
-    description: req.body.description,
-    category: req.body.category
-  })
-  await newItem.save()
-  res.send(newItem);
-  // let newObj = {
-  //   id: (getMaxID(data) + 1) + '',
-  //   title: req.body.title,
-  //   slug: ConvertTitleToSlug(req.body.title),
-  //   price: req.body.price,
-  //   description: req.body.description,
-  //   category: req.body.category,
-  //   images: req.body.images,
-  //   creationAt: new Date(Date.now()),
-  //   updatedAt: new Date(Date.now())
-  // }
-  // data.push(newObj);
-  // console.log(data);
-  // res.send(newObj);
-  // //console.log(g);
+router.post('/', checkLogin, checkRole("mod", "ADMIN"), async function (req, res, next) {
+    try {
+        let { title, price, description, images } = req.body;
+        let product = await productController.createProduct(title, price, description, images);
+        res.status(201).send(product);
+    } catch (error) {
+        res.status(400).send({ message: error.message });
+    }
+});
 
-})
-router.put('/:id', async function (req, res, next) {
-  let id = req.params.id;
-  let updatedItem = await productModel.findByIdAndUpdate(
-    id, req.body, {
-    new: true
-  }
-  )
-  res.send(updatedItem)
+router.put('/:id', checkLogin, checkRole("mod", "ADMIN"), async function (req, res, next) {
+    try {
+        let product = await productController.updateProduct(req.params.id, req.body);
+        if (!product) return res.status(404).send({ message: "id not found" });
+        res.send(product);
+    } catch (error) {
+        res.status(400).send({ message: error.message });
+    }
+});
 
-})
-router.delete('/:id', async function (req, res, next) {
-  let id = req.params.id;
-  let updatedItem = await productModel.findByIdAndUpdate(
-    id, {
-    isDeleted: true
-  }, {
-    new: true
-  }
-  )
-  res.send(updatedItem)
+router.delete('/:id', checkLogin, checkRole("ADMIN"), async function (req, res, next) {
+    try {
+        let product = await productController.deleteProduct(req.params.id);
+        if (!product) return res.status(404).send({ message: "id not found" });
+        res.send(product);
+    } catch (error) {
+        res.status(400).send({ message: error.message });
+    }
+});
 
-})
-
-module.exports = router;
+module.exports = router; 

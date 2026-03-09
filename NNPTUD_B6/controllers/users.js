@@ -39,5 +39,12 @@ module.exports = {
             .find({ isDeleted: false }).
             populate({ path: 'role', select: 'name' })
         return users;
+    },
+    updatePassword: async function (id, newPassword) {
+        return await userModel.findByIdAndUpdate(
+            id,
+            { $set: { password: newPassword } },
+            { new: true }
+        );
     }
 }

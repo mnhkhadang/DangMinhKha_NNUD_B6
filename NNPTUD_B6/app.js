@@ -19,10 +19,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect('mongodb://localhost:27017/NNPTUD-S2');
-mongoose.connection.on('connected', function () {
-  console.log("da connect");
-})
+mongoose
+  .connect('mongodb://localhost:27017/NNPTUD-S2')
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 //localhost:3000
 app.use('/', require('./routes/index'));

@@ -2,21 +2,21 @@ var express = require("express");
 var router = express.Router();
 
 let roleModel = require("../schemas/roles");
+let { checkLogin, checkRole } = require("../utils/authHandler");
 
-
-router.get("/", async function (req, res, next) {
+// GET / - ADMIN, mod
+router.get("/", checkLogin, checkRole("ADMIN", "mod"), async function (req, res, next) {
     let roles = await roleModel.find({ isDeleted: false });
     res.send(roles);
 });
 
-
-router.get("/:id", async function (req, res, next) {
+// GET /:id - ADMIN, mod
+router.get("/:id", checkLogin, checkRole("ADMIN", "mod"), async function (req, res, next) {
     try {
         let result = await roleModel.find({ _id: req.params.id, isDeleted: false });
         if (result.length > 0) {
             res.send(result);
-        }
-        else {
+        } else {
             res.status(404).send({ message: "id not found" });
         }
     } catch (error) {
@@ -24,8 +24,8 @@ router.get("/:id", async function (req, res, next) {
     }
 });
 
-
-router.post("/", async function (req, res, next) {
+// POST / - chỉ ADMIN
+router.post("/", checkLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let newItem = new roleModel({
             name: req.body.name,
@@ -38,7 +38,8 @@ router.post("/", async function (req, res, next) {
     }
 });
 
-router.put("/:id", async function (req, res, next) {
+// PUT /:id - chỉ ADMIN
+router.put("/:id", checkLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let updatedItem = await roleModel.findByIdAndUpdate(id, req.body, { new: true });
@@ -51,7 +52,8 @@ router.put("/:id", async function (req, res, next) {
     }
 });
 
-router.delete("/:id", async function (req, res, next) {
+// DELETE /:id - chỉ ADMIN
+router.delete("/:id", checkLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let updatedItem = await roleModel.findByIdAndUpdate(

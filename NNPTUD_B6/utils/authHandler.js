@@ -18,7 +18,7 @@ module.exports = {
                 token = authorizationToken.split(' ')[1];
             }
             let result = jwt.verify(token, 'HUTECH');
-            if (result.exp > Date.now()) {
+            if (result.exp > Math.floor(Date.now() / 1000)) {
                 req.userId = result.id;
                 next();
             } else {
@@ -35,16 +35,29 @@ module.exports = {
     },
     checkRole: function (...requiredRole) {
         return async function (req, res, next) {
-            let userId = req.userId;
-            let getUser = await userController.FindByID(userId);
-            let roleName = getUser.role.name;
-            if (requiredRole.includes(roleName)) {
-                next()
-            } else {
-                res.status(403).send({
-                    message: "ban khong co quyen"
-                })
+            try {
+                let userId = req.userId;
+                let getUser = await userController.FindByID(userId);
+                
+                // ← thêm kiểm tra null
+                if (!getUser) {
+                    return res.status(403).send({ message: "user khong ton tai" });
+                }
+
+                if (!getUser.role) {
+                    return res.status(403).send({ message: "user chua co role" });
+                }
+
+                let roleName = getUser.role.name;
+                if (requiredRole.includes(roleName)) {
+                    next();
+                } else {
+                    res.status(403).send({ message: "ban khong co quyen" });
+                }
+            } catch (error) {
+                res.status(403).send({ message: "ban khong co quyen" });
             }
         }
     }
+    
 }
